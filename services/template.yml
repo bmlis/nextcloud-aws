@@ -1,0 +1,74 @@
+AWSTemplateFormatVersion: '2010-09-09'
+
+Description: 'Setup services for nextcloud'
+
+Parameters:
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+  Project:
+    Description: Name of the project
+    Type: String
+
+  ClusterName:
+    Description: ECS Cluster stack name
+    Type: String
+  HostedZoneName:
+    Description: Name of the hosted zone to deploy to
+    Type: String
+  DNSName:
+    Description: Domain name to use for the specified EIP
+    Type: String
+  LoadBalancerDNSName:
+    Description: Domain name used by LoadBalancer
+    Type: String
+  LoadBalancerHostedZoneId:
+    Description: Id of the load balancers canonical hosted zone
+    Type: String
+  LoadBalancerListenerArn:
+    Description: Arn of the load balancers listener
+    Type: String
+  ListenerPriority:
+    Description: ALB Listener priority
+    Type: Number
+  DesiredTaskCount:
+    Description: Desired bot task count
+    Type: Number
+    Default: 1
+    ConstraintDescription: Must be >= 1
+    MinValue: 1
+
+Resources:
+  TaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: !Sub ${Project}-task-definition
+      NetworkMode: bridge
+      ContainerDefinitions:
+        - Image: "nginx:alpine"
+          Essential: true
+          Memory: 64
+          MemoryReservation: 32
+          Name: nginx-proxy
+          Links:
+            - nextcloud
+          PortMappings:
+            - ContainerPort: 80
+              HostPort: 80
+              Protocol: tcp
+        - Image: "nextcloud:latest"
+          Essential: true
+          Memory: 512
+          MemoryReservation: 256
+          Name: nextcloud
+          Environment:
+            - Name: SECRET_NAMESPACE
+              Value: !Ref EnvironmentName
+
+
+  Service:
+    Type: AWS::ECS::Service
+    Properties:
+      ServiceName: !Sub ${Project}-service
+      Cluster: !Ref ClusterName
+      DesiredCount: !Ref DesiredTaskCount
+      TaskDefinition: !Ref TaskDefinition
