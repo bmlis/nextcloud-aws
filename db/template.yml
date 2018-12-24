@@ -5,17 +5,17 @@ Parameters:
     Description: Name of the project for which vpc is created
     Type: String
   VpcId:
-    Description: Id of the VPC to deploy postgres to.
+    Description: Id of the VPC to deploy db to.
     Type: AWS::EC2::VPC::Id
   Subnets:
     Type: CommaDelimitedList
-    Description: Comma-delimited list of subnets that postgres will be deployed to.
+    Description: Comma-delimited list of subnets that db will be deployed to.
   BackupRetentionPeriod:
     Type: Number
     Description: How long backups should be kept (in days)
   InstanceType:
     Type: String
-    Description: Instance type for the machine that will host Postgres
+    Description: Instance type for the machine that will host db
   EngineVersion:
     Type: String
     Description: DB engine version
@@ -38,13 +38,13 @@ Resources:
     Type: AWS::RDS::DBSubnetGroup
     Properties:
       DBSubnetGroupDescription: String
-      DBSubnetGroupName: !Sub ${Project}-postgres-subnet-group
+      DBSubnetGroupName: !Sub ${Project}-subnet-group
       SubnetIds: !Ref Subnets
 
   DBSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupDescription: !Sub ${Project}-postgres-sg
+      GroupDescription: !Sub ${Project}-sg
       SecurityGroupIngress:
         - FromPort: 5432
           ToPort: 5432
@@ -53,7 +53,7 @@ Resources:
       VpcId: !Ref VpcId
       Tags:
         - Key: Name
-          Value: !Sub ${Project}-postgres-sg
+          Value: !Sub ${Project}-sg
 
   DB:
     Type: AWS::RDS::DBInstance
@@ -62,8 +62,7 @@ Resources:
       AutoMinorVersionUpgrade: true
       BackupRetentionPeriod: !Ref BackupRetentionPeriod
       DBInstanceClass: !Ref InstanceType
-      DBInstanceIdentifier: !Sub '${Project}-postgres'
-      DBName: !Sub ${Project}
+      DBInstanceIdentifier: !Sub '${Project}-db'
       DBSubnetGroupName: !Ref DBSubnetGroupName
       Engine: !Ref Engine
       EngineVersion: !Ref EngineVersion
