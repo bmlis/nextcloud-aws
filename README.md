@@ -29,6 +29,23 @@ Not so automatic setup of Nextcloud using free tier of AWS.
 ```
 
 6. Create stack for nextcloud and nginx services `./create-stack services`
+7. Setup s3 bucket as primary storage. You need to ssh into your instance and edit the `/data/nextcloud/config/config.php` (remember to use maintenance mode). Add following:
+```
+  'objectstore' =>
+  array (
+    'class' => 'OC\\Files\\ObjectStore\\S3',
+    'arguments' =>
+    array (
+      'bucket' => '<storage-bucket-name>',
+      'key' => '<storage-user-key>',
+      'secret' => <storage-user-secret>,
+      'use_ssl' => true,
+      'region' => '<region-you-deployed-to>',
+      'use_path_style' => true,
+    ),
+  ),
+```
+
 
 TODO:
 - s3 as primary storage
