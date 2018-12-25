@@ -1,0 +1,36 @@
+AWSTemplateFormatVersion: '2010-09-09'
+
+Description: 'Nextcloud s3 data'
+
+Parameters:
+  DomainName:
+    Description: Name of the domain. Bucket names have to be unique.
+    Type: String
+
+Resources:
+
+  NextcloudBucket:
+    Type: 'AWS::S3::Bucket'
+    DeletionPolicy: Retain
+    Properties:
+      BucketName: !Sub ${DomainName}-nextcloud-backups
+      LifecycleConfiguration:
+        Rules:
+          - ExpirationInDays: 7
+            Status: Enabled
+
+  NextcloudDbBucket:
+    Type: 'AWS::S3::Bucket'
+    DeletionPolicy: Retain
+    Properties:
+      BucketName: !Sub ${DomainName}-nextcloud-db-backups
+      LifecycleConfiguration:
+        Rules:
+          - ExpirationInDays: 7
+            Status: Enabled
+
+  NextcloudPrimaryStorageBucket:
+    Type: 'AWS::S3::Bucket'
+    DeletionPolicy: Retain
+    Properties:
+      BucketName: !Sub ${DomainName}-nextcloud-storage

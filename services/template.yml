@@ -5,6 +5,7 @@ Description: 'Setup services for nextcloud'
 Parameters:
   VpcId:
     Type: AWS::EC2::VPC::Id
+
   Project:
     Description: Name of the project
     Type: String
@@ -12,24 +13,7 @@ Parameters:
   ClusterName:
     Description: ECS Cluster stack name
     Type: String
-  HostedZoneName:
-    Description: Name of the hosted zone to deploy to
-    Type: String
-  DNSName:
-    Description: Domain name to use for the specified EIP
-    Type: String
-  LoadBalancerDNSName:
-    Description: Domain name used by LoadBalancer
-    Type: String
-  LoadBalancerHostedZoneId:
-    Description: Id of the load balancers canonical hosted zone
-    Type: String
-  LoadBalancerListenerArn:
-    Description: Arn of the load balancers listener
-    Type: String
-  ListenerPriority:
-    Description: ALB Listener priority
-    Type: Number
+
   DesiredTaskCount:
     Description: Desired bot task count
     Type: Number
@@ -37,33 +21,116 @@ Parameters:
     ConstraintDescription: Must be >= 1
     MinValue: 1
 
+  NextcloudUsername:
+    Description: Admin's username
+    Type: String
+
+  NextcloudPassword:
+    Description: Admin's password
+    Type: String
+
+  TrustedDomains:
+    Description: Trusted domains for nextcloud
+    Type: String
+
+  DbName:
+    Description: Name of the database to use
+    Type: String
+
+  DbUsername:
+    Description: Username to use to access the database
+    Type: String
+
+  DbRootPassword:
+    Description: DB master password
+    Type: String
+
+  DbPassword:
+    Description: DB master password
+    Type: String
+
 Resources:
   TaskDefinition:
     Type: AWS::ECS::TaskDefinition
     Properties:
       Family: !Sub ${Project}-task-definition
       NetworkMode: bridge
+      Volumes:
+        - Host:
+            SourcePath: "/data/nextcloud/"
+          Name: "nextcloud-data"
+        - Host:
+            SourcePath: "/etc/nginx/conf.d/default.conf"
+          Name: "nginx-configuration"
+        - Host:
+            SourcePath: "/etc/letsencrypt"
+          Name: "letsencrypt-cert"
+        - Host:
+            SourcePath: "/data/letsencrypt"
+          Name: "letsencrypt-cert-data"
       ContainerDefinitions:
-        - Image: "nginx:alpine"
+        - Image: "nginx:latest"
           Essential: true
           Memory: 64
           MemoryReservation: 32
           Name: nginx-proxy
+          MountPoints:
+            - SourceVolume: "nginx-configuration"
+              ContainerPath: "/etc/nginx/conf.d/default.conf"
+            - SourceVolume: "letsencrypt-cert"
+              ContainerPath: "/etc/letsencrypt"
+            - SourceVolume: "letsencrypt-cert-data"
+              ContainerPath: "/data/letsencrypt"
           Links:
             - nextcloud
           PortMappings:
             - ContainerPort: 80
               HostPort: 80
               Protocol: tcp
-        - Image: "nextcloud:latest"
+            - ContainerPort: 443
+              HostPort: 443
+              Protocol: tcp
+
+        - Image: "nextcloud"
           Essential: true
           Memory: 512
+          Links:
+            - mariadb
           MemoryReservation: 256
           Name: nextcloud
+          MountPoints:
+            - SourceVolume: "nextcloud-data"
+              ContainerPath: "/var/www/html"
           Environment:
-            - Name: SECRET_NAMESPACE
-              Value: !Ref EnvironmentName
+            - Name: NEXTCLOUD_ADMIN_USER
+              Value: !Ref NextcloudUsername
+            - Name: NEXTCLOUD_ADMIN_PASSWORD
+              Value: !Ref NextcloudPassword
+            - Name: NEXTCLOUD_TRUSTED_DOMAINS
+              Value: !Ref TrustedDomains
+            - Name: MYSQL_HOST
+              Value: mariadb:3306
+            - Name: MYSQL_USER
+              Value: !Ref DbUsername
+            - Name: MYSQL_PASSWORD
+              Value: !Ref DbPassword
+            - Name: MYSQL_DATABASE
+              Value: nextcloud
 
+        - Image: "mariadb"
+          Essential: true
+          Memory: 256
+          MemoryReservation: 128
+          Name: mariadb
+          Environment:
+            - Name: MYSQL_USER
+              Value: !Ref DbUsername
+            - Name: MYSQL_PASSWORD
+              Value: !Ref DbPassword
+            - Name: MYSQL_DATABASE
+              Value: nextcloud
+            - Name: MYSQL_ROOT_PASSWORD
+              Value: !Ref DbRootPassword
 
   Service:
     Type: AWS::ECS::Service
