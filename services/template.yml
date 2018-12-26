@@ -33,10 +33,6 @@ Parameters:
     Description: Trusted domains for nextcloud
     Type: String
 
-  DbName:
-    Description: Name of the database to use
-    Type: String
-
   DbUsername:
     Description: Username to use to access the database
     Type: String

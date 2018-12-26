@@ -1,0 +1,6 @@
+[
+    {
+      "ParameterKey": "DomainName",
+      "ParameterValue": "nextcloud.example.com"
+    }
+]

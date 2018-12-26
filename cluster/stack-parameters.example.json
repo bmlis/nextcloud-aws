@@ -1,0 +1,22 @@
+[
+  {
+    "ParameterKey": "VpcId",
+    "ParameterValue": "vpc-id"
+  },
+  {
+    "ParameterKey": "ASGSubnet",
+    "ParameterValue": "subnet-id"
+  },
+  {
+    "ParameterKey": "KeyName",
+    "ParameterValue": "nextcloud"
+  },
+  {
+    "ParameterKey": "Domain",
+    "ParameterValue": "nextcloud.example.com"
+  },
+  {
+    "ParameterKey": "ClusterName",
+    "ParameterValue": "nextcloud"
+  }
+]

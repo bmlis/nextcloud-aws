@@ -29,17 +29,6 @@ Parameters:
     Description: Name of the key pair for accessing machines
     Type: String
 
-  NextcloudBackupBucketName:
-    Description: Name of the nextcloud backup bucket
-    Type: String
-
-  DbBackupBucketName:
-    Description: Name of the db backup bucket
-    Type: String
-
-  PrimaryStorageBucketName:
-    Description: Name of the primary storage bucket
-    Type: String
   Domain:
     Description: Full domain address
     Type: String
@@ -56,8 +45,8 @@ Resources:
             - Effect: "Allow"
               Action: "s3:*"
               Resource:
-                - !Sub "arn:aws:s3:::${PrimaryStorageBucketName}/*"
-                - "arn:aws:s3:::${PrimaryStorageBucketName}"
+                - !Sub "arn:aws:s3:::${Domain}-nextcloud-storage/*"
+                - !Sub "arn:aws:s3:::${Domain}-nextcloud-storage"
 
   ECSCluster:
     Type: AWS::ECS::Cluster
@@ -221,8 +210,8 @@ Resources:
               owner: root
               group: root
               content: !Sub |
-                  0 23 * * * root  sudo tar -czf - /data/nextcloud | aws s3 cp - s3://${NextcloudBackupBucketName}/`date +"%d_%m_%y".tar.gz`
-                  0 23 * * * root  docker exec `docker ps | grep "mariadb" | awk '{ print $1 }'` sh -c 'exec mysqldump --all-databases -uroot -p"$MYSQL_ROOT_PASSWORD"' |  aws s3 cp - s3://${DbBackupBucketName}/nextcloud_sqlbkp_`date +"%Y%m%d"`.bak
+                  0 23 * * * root  sudo tar -czf - /data/nextcloud | aws s3 cp - s3://${Domain}-nextcloud-backups/`date +"%d_%m_%y".tar.gz`
+                  0 23 * * * root  docker exec `docker ps | grep "mariadb" | awk '{ print $1 }'` sh -c 'exec mysqldump --all-databases -uroot -p"$MYSQL_ROOT_PASSWORD"' |  aws s3 cp - s3://${Domain}-nextcloud-db-backups/nextcloud_sqlbkp_`date +"%Y%m%d"`.bak
 
             "/etc/nginx/conf.d/default.conf":
               content: !Sub |

@@ -1,0 +1,38 @@
+[
+    {
+        "ParameterKey": "VpcId",
+        "ParameterValue": "vpc-id"
+    },
+    {
+        "ParameterKey": "Project",
+        "ParameterValue": "nextcloud"
+    },
+    {
+        "ParameterKey": "ClusterName",
+        "ParameterValue": "nextcloud"
+    },
+    {
+        "ParameterKey": "NextcloudUsername",
+        "ParameterValue": "your-nextcloud-username"
+    },
+    {
+        "ParameterKey": "NextcloudPassword",
+        "ParameterValue": "your-nextcloud-username"
+    },
+    {
+        "ParameterKey": "TrustedDomains",
+        "ParameterValue": "nextcloud.example.com"
+    },
+    {
+        "ParameterKey": "DbUsername",
+        "ParameterValue": "mariadb"
+    },
+    {
+        "ParameterKey": "DbRootPassword",
+        "ParameterValue": "db-root-password"
+    },
+    {
+        "ParameterKey": "DbPassword",
+        "ParameterValue": "db-password"
+    }
+]
