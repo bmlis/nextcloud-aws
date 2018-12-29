@@ -81,39 +81,30 @@ Resources:
     Properties:
       Path: /
       RoleName: !Sub ${ClusterName}-ecs-iam-role
-      AssumeRolePolicyDocument: |
-        {
-          "Statement": [{
-            "Action": "sts:AssumeRole",
-            "Effect": "Allow",
-            "Principal": {
-              "Service": [
-                "ec2.amazonaws.com",
-                "ecs.amazonaws.com"
-              ]
-            }
-          }]
-        }
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: "Allow"
+            Action: "sts:AssumeRole"
+            Principal:
+              Service:
+                - "ec2.amazonaws.com"
+                - "ecs.amazonaws.com"
       Policies:
       - PolicyName: ecs-service
-        PolicyDocument: |
-          {
-            "Statement": [{
-              "Effect": "Allow",
-              "Action": [
-                "ecs:CreateCluster",
-                "ecs:DeregisterContainerInstance",
-                "ecs:DiscoverPollEndpoint",
-                "ecs:Poll",
-                "ecs:RegisterContainerInstance",
-                "ecs:StartTelemetrySession",
-                "ecs:Submit*",
-                "s3:*",
-                "ec2:Describe*"
-              ],
-              "Resource": "*"
-            }]
-          }
+        PolicyDocument:
+          Statement:
+            - Effect: "Allow"
+              Resource: "*"
+              Action:
+                - "ecs:CreateCluster"
+                - "ecs:DeregisterContainerInstance"
+                - "ecs:DiscoverPollEndpoint"
+                - "ecs:Poll"
+                - "ecs:RegisterContainerInstance"
+                - "ecs:StartTelemetrySession"
+                - "ecs:Submit*"
+                - "s3:*"
+                - "ec2:Describe*"
 
   ECSInstanceProfile:
     Type: AWS::IAM::InstanceProfile
@@ -175,7 +166,7 @@ Resources:
               vim-enhanced: []
           commands:
             01_add_instance_to_cluster:
-              command: !Sub echo ECS_CLUSTER=${ECSCluster} >> /etc/ecs/ecs.config
+              command: !Sub echo ECS_CLUSTER=${ECSCluster} > /etc/ecs/ecs.config
           files:
             "/etc/cfn/cfn-hup.conf":
               mode: '000400'
@@ -185,6 +176,7 @@ Resources:
                 [main]
                 stack=${AWS::StackId}
                 region=${AWS::Region}
+                interval=1
 
             "/etc/cfn/hooks.d/cfn-auto-reloader.conf":
               content: !Sub |
@@ -205,13 +197,34 @@ Resources:
                   }
                 }
 
+            "/usr/bin/backup-nextcloud.sh":
+              mode: "000700"
+              owner: root
+              group: root
+              content: !Sub |
+                #!/bin/sh
+                set -ex
+                FILENAME=`date +"%d_%m_%y"`.tar.gz
+                tar -czf - /data/nextcloud | aws s3 cp - s3://${Domain}-nextcloud-backups/$FILENAME
+
+            "/usr/bin/backup-nextcloud-db.sh":
+              mode: "000700"
+              owner: root
+              group: root
+              content: !Sub |
+                #!/bin/sh
+                set -ex
+                CONTAINER_ID=`docker ps | grep "mariadb" | awk '{ print $1 }'`
+                FILENAME=nextcloud_sqlbkp_`date +"%Y%m%d"`.bak
+                docker exec $CONTAINER_ID sh -c 'exec mysqldump --all-databases -uroot -p"$MYSQL_ROOT_PASSWORD"' |  aws s3 cp - s3://${Domain}-nextcloud-db-backups/$FILENAME
+
             "/etc/cron.d/nextcloud-backup":
               mode: "000644"
               owner: root
               group: root
               content: !Sub |
-                  0 23 * * * root  sudo tar -czf - /data/nextcloud | aws s3 cp - s3://${Domain}-nextcloud-backups/`date +"%d_%m_%y".tar.gz`
-                  0 23 * * * root  docker exec `docker ps | grep "mariadb" | awk '{ print $1 }'` sh -c 'exec mysqldump --all-databases -uroot -p"$MYSQL_ROOT_PASSWORD"' |  aws s3 cp - s3://${Domain}-nextcloud-db-backups/nextcloud_sqlbkp_`date +"%Y%m%d"`.bak
+                  00 23 * * * root  /usr/bin/backup-nextcloud.sh >> /var/log/nextcloud-backup.log 2>&1
+                  00 23 * * * root  /usr/bin/backup-nextcloud-db.sh >> /var/log/nextcloud-db-backup.log 2>&1
 
             "/etc/nginx/conf.d/default.conf":
               content: !Sub |
